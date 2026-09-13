@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Status Koneksi</title>
+<link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e14;
+    --bg2: #10161f;
+    --accent: #3b82f6;
+    --accent2: #60a5fa;
+    --text: #e5ecf5;
+    --muted: #7d8a9c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%;
+    width: 100%;
+    background: radial-gradient(1200px 600px at 50% -10%, #12203a 0%, var(--bg) 55%);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text);
+    overflow: hidden;
+  }
+  .wrap {
+    text-align: center;
+    padding: 48px 28px;
+    max-width: 380px;
+    width: 100%;
+  }
+
+  /* icon ring */
+  .ring {
+    position: relative;
+    width: 116px;
+    height: 116px;
+    margin: 0 auto 28px;
+  }
+  .ring .halo {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(96, 165, 250, 0.25);
+    animation: pulse 2.4s ease-out infinite;
+  }
+  .ring .halo.delay { animation-delay: 0.8s; }
+  @keyframes pulse {
+    0%   { transform: scale(0.82); opacity: 0; }
+    30%  { opacity: 0.6; }
+    100% { transform: scale(1.5); opacity: 0; }
+  }
+  .ring .core {
+    position: absolute;
+    inset: 14px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #1b2536, #10161f);
+    border: 1px solid rgba(96,165,250,0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 0 24px rgba(59,130,246,0.18), 0 8px 30px rgba(0,0,0,0.5);
+  }
+  .ring .core i {
+    font-size: 48px;
+    color: var(--accent2);
+    line-height: 1;
+  }
+
+  /* spinner */
+  .spinner {
+    width: 44px;
+    height: 44px;
+    margin: 0 auto 24px;
+    border: 3px solid rgba(255,255,255,0.08);
+    border-top-color: var(--accent2);
+    border-right-color: var(--accent2);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  h1 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    letter-spacing: -0.2px;
+    color: #ffffff;
+  }
+  p {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.55;
+    margin-bottom: 32px;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: rgba(239,68,68,0.14);
+    color: #f87171;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+  }
+
+  /* tombol refresh */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    padding: 14px 34px;
+    border-radius: 28px;
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 10px 26px rgba(37,99,235,0.4);
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+    user-select: none;
+  }
+  .btn i { font-size: 18px; transition: transform 0.4s ease; }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(37,99,235,0.55); }
+  .btn:active { transform: translateY(0) scale(0.98); }
+  .btn.loading i { animation: spin 0.7s linear infinite; }
+  .btn.loading { pointer-events: none; opacity: 0.85; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div id="spinnerBox" class="spinner" style="display:none;"></div>
+
+    <div class="ring" id="ringBox">
+      <div class="halo"></div>
+      <div class="halo delay"></div>
+      <div class="core"><i class="ri-wifi-off-line" id="icon"></i></div>
+    </div>
+
+    <div class="badge" id="badge" style="display:none;">Error</div>
+    <h1 id="title">Menghubungkan...</h1>
+    <p id="msg">Silakan periksa koneksi internet Anda</p>
+
+    <button class="btn" id="refreshBtn">
+      <i class="ri-refresh-line"></i>
+      <span>Muat Ulang</span>
+    </button>
+  </div>
+
+<script>
+  var params = new URLSearchParams(window.location.search);
+
+  var type = params.get('type') || 'offline';
+  var title = params.get('title') || 'Maaf, server offline';
+  var msg = params.get('msg') || 'Coba lagi nanti ya';
+  var code = params.get('code') || '';
+
+  var spinnerBox = document.getElementById('spinnerBox');
+  var ringBox = document.getElementById('ringBox');
+  var icon = document.getElementById('icon');
+  var badge = document.getElementById('badge');
+  var titleEl = document.getElementById('title');
+  var msgEl = document.getElementById('msg');
+  var btn = document.getElementById('refreshBtn');
+
+  var showSpinner = (type === 'nonet' || type === 'connecting');
+
+  if (showSpinner) {
+    ringBox.style.display = 'none';
+    spinnerBox.style.display = 'block';
+  } else {
+    spinnerBox.style.display = 'none';
+    ringBox.style.display = 'block';
+    if (type === 'error') {
+      icon.className = 'ri-close-circle-line';
+      badge.style.display = 'inline-block';
+      badge.textContent = 'Kode ' + (code || 'Error');
+      badge.style.background = 'rgba(239,68,68,0.14)';
+      badge.style.color = '#f87171';
+    } else if (type === 'offline') {
+      icon.className = 'ri-cloud-off-line';
+    } else {
+      icon.className = 'ri-wifi-off-line';
+    }
+  }
+
+  titleEl.textContent = title;
+  msgEl.textContent = msg;
+
+  btn.addEventListener('click', function () {
+    btn.classList.add('loading');
+    if (window.AppReload && window.AppReload.reload) {
+      window.AppReload.reload();
+    } else {
+      location.reload();
+    }
+  });
+</script>
+</body>
+</html>
